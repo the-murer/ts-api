@@ -1,13 +1,19 @@
-import express from 'express';
+import express, { Application } from 'express';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-const app = express();
+dotenv.config();
+const port: string | undefined = process.env.PORT;
+const mongoUri: string = process.env.MONGO_URI as string;
 
-app.get('/', (request, response) =>
-  response.json({
-    message: 'Meu server Express, Typescript e ESLint!',
-  }),
-);
+const app: Application = express();
+app.use(express.json());
 
-app.listen(3333, () => {
-  console.log('Back-end started in 3333 port!');
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}!`);
 });
+
+
+mongoose.connect(mongoUri, { })
+  .then(() => { console.log('Conectado ao mongo'); })
+  .catch((error) => { console.error('Falha ao estabelecer conexão com mongo:', error); });
