@@ -98,8 +98,10 @@ const getUsers = async (req: Request, res: Response): Promise<void> => {
 
 const getUserById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { id } = req.params;
-        const user = await userModel.findOne({ id });
+        const userId = req.params.userId;
+
+        const user = await userModel.findById(userId);
+
         if (!user) {
             res.status(404).send({ error: 'Usuário não encontrado' });
             return;
