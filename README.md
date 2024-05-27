@@ -57,7 +57,7 @@ MONGO_URI=<sua-url-de-conexão-com-o-mongodb-atlas>
 
 ```sh
 
-yarn start
+yarn dev
 
 ```
 
