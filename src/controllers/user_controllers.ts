@@ -78,7 +78,6 @@ const registerUser = async (req: Request, res: Response): Promise<void> => {
     const hash = await bcrypt.hash(password, salt);
 
     const user = await userModel.create({ name, email, password: hash });
-    console.log("🚀 ~ registerUser ~ email, password:", email, password)
     const token = await createToken(user._id.toString());
 
     res.status(200).json({ _id: user._id, name, email, token });

@@ -13,9 +13,9 @@ const createChat = async (req: Request, res: Response): Promise<void> => {
     return;
   } catch (error) {
     if (error instanceof Error) {
-        res.status(500).send({ error: 'Falha ao criar usuário', message: error.message });
+        res.status(500).send({ error: 'Falha ao criar chat', message: error.message });
       } else {
-        res.status(500).send({ error: 'Falha ao criar usuário', message: 'Erro desconhecido' });
+        res.status(500).send({ error: 'Falha ao criar chat', message: 'Erro desconhecido' });
       }  }
 };
 
