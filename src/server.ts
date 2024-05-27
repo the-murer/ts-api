@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 
 import userRoutes from './routes/user_routes';
+import chatRoutes from './routes/chat_routes';
 
 dotenv.config();
 const port: string | undefined = process.env.PORT;
@@ -20,6 +21,7 @@ app.use(cors(corsOptions));
 app.get('/test', (req, res) => { res.send('Tudo em ordem!') });
 
 app.use('/users', userRoutes);
+app.use('/chats', chatRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}!`);
