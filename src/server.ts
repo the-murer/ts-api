@@ -5,6 +5,7 @@ import cors from 'cors';
 
 import userRoutes from './routes/user_routes';
 import chatRoutes from './routes/chat_routes';
+import messageRoutes from './routes/message_routes';
 
 dotenv.config();
 const port: string | undefined = process.env.PORT;
@@ -22,6 +23,7 @@ app.get('/test', (req, res) => { res.send('Tudo em ordem!') });
 
 app.use('/users', userRoutes);
 app.use('/chats', chatRoutes);
+app.use('/messages', messageRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}!`);
