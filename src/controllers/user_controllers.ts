@@ -63,7 +63,7 @@ const registerUser = async (req: Request, res: Response): Promise<void> => {
         res.status(400).send({ error: 'Email inválido' });
         return    
     } 
-    if (!validator.isLength(password, { min: 6 })) {
+    if (!validator.isLength(password, { min: 3 })) {
         res.status(400).send({ error: 'Senha inválida' });
         return;
     }  
@@ -115,6 +115,35 @@ const getUserById = async (req: Request, res: Response): Promise<void> => {
           }  
         }
     
+}
+
+export async function  userValidateAndCreate (data: any)  { 
+    const { name, email, password } = data;
+    if (!name || !email || !password) {
+        throw new Error('Todos os campos devem ser preenchidos'); 
+        return;
+    }  
+    if (!validator.isEmail(email)) {
+        throw new Error('Email inválido'); 
+        return    
+    } 
+    if (!validator.isLength(password, { min: 3 })) {
+        throw new Error('Senha inválida');
+        return;
+    }  
+
+    const userExists = await userModel.findOne({ email });
+    if (userExists) {
+        throw new Error('Email em uso'); 
+        return;
+    } 
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const user = await userModel.create({ name, email, password: hash });
+    const token = await createToken(user._id.toString());
+    return { _id: user._id, name, email, token };
 }
 
 export  {
