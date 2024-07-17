@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import userModel from '../models/user_model';
 import validator from 'validator';
 import bcrypt from 'bcrypt';
@@ -11,131 +10,50 @@ const createToken = async (_id: string): Promise<string> => {
     return jwt.sign({ _id }, jwtKey, { expiresIn: '1d' });
 }
 
-const loginUser = async (req: Request, res: Response): Promise<void> => {
+export async function userLogin (data: { email: string, password: string }): Promise<{ _id: string, name: string, email: string, token: string }> {
     try {
-        const { email, password } = req.body;
-        
+        const { email, password } = data;
         if (!email || !password) {
-            res.status(400).send({ error: 'Credenciais inválidas' });
-            return;
+            throw Error('Credenciais inválidas'); 
         }  
         if (!validator.isEmail(email)) {
-            res.status(400).send({ error: 'Email inválido' });
-            return;
-        }  
+            throw Error('Email inválido'); 
+        } 
     
         const user = await userModel.findOne({ email });
         if (!user) {
-            res.status(400).send({ error: 'Credenciais inválidas' });
-            return;
+            throw Error('Credenciais inválidas'); 
         }  
     
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
-            res.status(400).send({ error: 'Credenciais inválidas' });
-            return;
+            throw Error('Credenciais inválidas'); 
         }
     
         const token = await createToken(user._id.toString());
     
-        res.status(200).json({ _id: user._id, name: user.name, email, token });
-        return;
+        return { _id: user._id.toString(), name: user.name, email, token };
+        
     } catch (error) {
-        if (error instanceof Error) {
-            res.status(500).send({ error: 'Falha ao autenticar usuário', message: error.message });
-            return;
-          } else {
-            res.status(500).send({ error: 'Falha ao autenticar usuário' });
-            return;
-          }
+        throw Error('Falha ao autenticar usuário'); 
     }
 }
 
-const registerUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, email, password } = req.body;    
-
-    if (!name || !email || !password) {
-        res.status(400).send({ error: 'Todos os campos devem ser preenchidos' });
-        return;
-    }  
-    if (!validator.isEmail(email)) {
-        res.status(400).send({ error: 'Email inválido' });
-        return    
-    } 
-    if (!validator.isLength(password, { min: 3 })) {
-        res.status(400).send({ error: 'Senha inválida' });
-        return;
-    }  
-
-    const userExists = await userModel.findOne({ email });
-    if (userExists) {
-        res.status(400).send({ error: 'Este email já esta em uso' });
-        return;
-    } 
-
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
-    const user = await userModel.create({ name, email, password: hash });
-    const token = await createToken(user._id.toString());
-
-    res.status(200).json({ _id: user._id, name, email, token });
-    return;
-  } catch (error) {
-    if (error instanceof Error) {
-        res.status(500).send({ error: 'Falha ao criar usuário', message: error.message });
-      } else {
-        res.status(500).send({ error: 'Falha ao criar usuário', message: 'Erro desconhecido' });
-      }  }
-};
-
-const getUsers = async (req: Request, res: Response): Promise<void> => {
-    const users = await userModel.find();
-    res.status(200).json(users);
-}
-
-const getUserById = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = req.params.userId;
-
-        const user = await userModel.findById(userId);
-
-        if (!user) {
-            res.status(404).send({ error: 'Usuário não encontrado' });
-            return;
-        }
-        res.status(200).json(user);
-        
-    } catch (error) {
-        if (error instanceof Error) {
-            res.status(500).send({ error: 'Falha ao buscar usuário', message: error.message });
-          } else {
-            res.status(500).send({ error: 'Falha ao buscar usuário', message: 'Erro desconhecido' });
-          }  
-        }
-    
-}
-
-export async function  userValidateAndCreate (data: any)  { 
+export async function  userValidateAndCreate (data: { name: string, email: string, password: string }): Promise<{ _id: string, name: string, email: string, token: string }> {
     const { name, email, password } = data;
     if (!name || !email || !password) {
-        throw new Error('Todos os campos devem ser preenchidos'); 
-        return;
+        throw Error('Todos os campos devem ser preenchidos'); 
     }  
     if (!validator.isEmail(email)) {
-        throw new Error('Email inválido'); 
-        return    
+        throw Error('Email inválido'); 
     } 
     if (!validator.isLength(password, { min: 3 })) {
-        throw new Error('Senha inválida');
-        return;
+        throw Error('Senha inválida');
     }  
 
     const userExists = await userModel.findOne({ email });
     if (userExists) {
-        throw new Error('Email em uso'); 
-        return;
+        throw Error('Email em uso'); 
     } 
 
     const salt = await bcrypt.genSalt(10);
@@ -143,13 +61,5 @@ export async function  userValidateAndCreate (data: any)  {
 
     const user = await userModel.create({ name, email, password: hash });
     const token = await createToken(user._id.toString());
-    return { _id: user._id, name, email, token };
+    return { _id: user._id.toString(), name, email, token };
 }
-
-export  {
-    registerUser,
-    createToken,
-    loginUser,
-    getUsers,
-    getUserById,
-};

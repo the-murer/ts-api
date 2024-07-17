@@ -2,14 +2,12 @@ import express, { Application } from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { connect, JSONCodec } from "nats";
-import message_model from './models/message_model';
-import chat_model from './models/chat_model';
+import { connect, JSONCodec, StringCodec } from "nats";
 
-import userRoutes from './routes/user_routes';
-import chatRoutes from './routes/chat_routes';
-import messageRoutes from './routes/message_routes';
-import { userValidateAndCreate } from './controllers/user_controllers';
+import { userLogin, userValidateAndCreate } from './controllers/user_controllers';
+import userModel from './models/user_model';
+import messageModel from './models/message_model';
+import chatModel from './models/chat_model';
 
 dotenv.config();
 const port: string | undefined = process.env.PORT;
@@ -26,9 +24,6 @@ app.use(cors(corsOptions));
 
 app.get('/test', (req, res) => { res.send('Tudo em ordem!') });
 
-app.use('/users', userRoutes);
-app.use('/chats', chatRoutes);
-app.use('/messages', messageRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}!`);
@@ -43,6 +38,7 @@ connect({ servers: natsServers }).then(async (nc) => {
   console.log(`Conectado ao NATS ${nc.getServer()}`);
 
   const jc = JSONCodec();
+  const sc = StringCodec();
   nc.subscribe("message:create", {
     callback: async (err, msg) => {
       const notification = jc.decode(msg.data);
@@ -50,24 +46,37 @@ connect({ servers: natsServers }).then(async (nc) => {
         console.log("Falha ao criar", err.message);
         return;
       }
-      const message = await message_model.create(notification);  
+      const message = await messageModel.create(notification);  
       nc.publish("notifications", jc.encode({...message, type: "message"}));
       msg.respond(jc.encode(message));
     },
   });
+  nc.subscribe("messages", {
+    callback: async (err, msg) => {
+      if (err) { console.log("Falha ao buscar mensagens", err.message); return; }
+      msg.respond(jc.encode(await messageModel.find({ chatId: sc.decode(msg.data) })));
+    },
+  });
   
-  nc.subscribe("chat:create", {
+  nc.subscribe("c:create", {
     callback: async (err, msg) => {
       const notification = jc.decode(msg.data) as { userId: string, receiverId: string };
       if (err) {
         console.log("Falha ao criar chat", err.message);
         return;
       }
-      const message = await chat_model.create({ participants: [notification.userId, notification.receiverId] });
+      const message = await chatModel.create({ participants: [notification.userId, notification.receiverId] });
       nc.publish("notifications", jc.encode({ ...message, type: "chat" }));
       msg.respond(jc.encode(message));
     },
   });
+  nc.subscribe("chats", {
+    callback: async (err, msg) => {
+      if (err) { console.log("Falha ao buscar chats", err.message); return; }
+      msg.respond(jc.encode(await chatModel.find({ participants: { $in: [sc.decode(msg.data)] } })));
+    },
+  });
+
   nc.subscribe("user:create", {
     callback: async (err, msg) => {
       const notification = jc.decode(msg.data) as { email: string, name: string, password: string };
@@ -79,6 +88,34 @@ connect({ servers: natsServers }).then(async (nc) => {
       msg.respond(jc.encode(user));
     },
   });
+  nc.subscribe("user:login", {
+    callback: async (err, msg) => {
+      const notification = jc.decode(msg.data) as { email: string, name: string, password: string };
+      if (err) {
+        console.log("Falha no user", err.message);
+        return;
+      }
+      const user = await userLogin(notification);
+      msg.respond(jc.encode(user));
+    },
+  });
+  nc.subscribe("user", {
+    callback: async (err, msg) => {
+      const request = sc.decode(msg.data);
+      if (err) {
+        console.log("Falha no user", err.message);
+        return;
+      }
+      msg.respond(jc.encode(await userModel.findById(request)));
+    },
+  });
+  nc.subscribe("users", {
+    callback: async (err, msg) => {
+      if (err) { console.log("Falha no user", err.message); return; }
+      msg.respond(jc.encode(await userModel.find()));
+    },
+  });
+
 });
 
 
