@@ -115,6 +115,22 @@ connect({ servers: natsServers }).then(async (nc) => {
       msg.respond(jc.encode(await userModel.find()));
     },
   });
+  nc.subscribe("online", {
+    callback: async (err, msg) => {
+      console.log("User online", sc.decode(msg.data));
+      userModel.findByIdAndUpdate(sc.decode(msg.data), { $set: { active: true } });
+      nc.publish("notifications", jc.encode({ userId: sc.decode(msg.data), type: "status", online: true }));
+      if (err) { console.log("Falha no user", err.message); return; }
+    },
+  });
+  nc.subscribe("offline", {
+    callback: async (err, msg) => {
+      console.log("User offline", sc.decode(msg.data));
+      userModel.findByIdAndUpdate(sc.decode(msg.data), { $set: { active: false } });
+      nc.publish("notifications", jc.encode({ userId: sc.decode(msg.data), type: "status", offline: true }));
+      if (err) { console.log("Falha no user", err.message); return; }
+    },
+  });
 
 });
 

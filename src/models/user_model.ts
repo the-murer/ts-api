@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 interface IUser {
     name: string;
     email: string;
+    active: boolean;
     password: string;
   }
   
@@ -16,6 +17,9 @@ const userSchema = new mongoose.Schema<IUser>({
         type: String,
         required: true,
         unique: true,
+    },
+    active: {
+        type: Boolean,
     },
     password: {
         type: String,
